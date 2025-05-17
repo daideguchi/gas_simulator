@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>GAS開発シミュレーター</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f5f5f5;
+      }
+      .container {
+        display: flex;
+        height: 100vh;
+      }
+      .editor-panel {
+        flex: 1;
+        padding: 20px;
+        background-color: #fff;
+        border-right: 1px solid #ddd;
+        display: flex;
+        flex-direction: column;
+      }
+      .spreadsheet-panel {
+        flex: 1;
+        padding: 20px;
+        background-color: #fff;
+        display: flex;
+        flex-direction: column;
+      }
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+      }
+      h1 {
+        color: #4285f4;
+        margin: 0;
+        font-size: 1.5rem;
+      }
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      button {
+        padding: 8px 15px;
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      button:hover {
+        background-color: #3367d6;
+      }
+      button.menu-button {
+        background-color: #34a853;
+      }
+      button.menu-button:hover {
+        background-color: #2e8b57;
+      }
+      .code-editor {
+        flex-grow: 1;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .editor-tabs {
+        display: flex;
+        background-color: #f1f1f1;
+        border-bottom: 1px solid #ddd;
+      }
+      .editor-tab {
+        padding: 8px 15px;
+        cursor: pointer;
+        border-right: 1px solid #ddd;
+      }
+      .editor-tab.active {
+        background-color: #fff;
+        border-bottom: 2px solid #4285f4;
+      }
+      textarea {
+        flex-grow: 1;
+        width: 100%;
+        min-height: 300px;
+        padding: 10px;
+        font-family: monospace;
+        font-size: 14px;
+        border: none;
+        resize: none;
+      }
+      .spreadsheet {
+        flex-grow: 1;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        overflow: auto;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th {
+        background-color: #f1f1f1;
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+        font-weight: normal;
+      }
+      td {
+        border: 1px solid #ddd;
+        padding: 0;
+        height: 25px;
+        min-width: 80px;
+        position: relative;
+      }
+      td.active {
+        outline: 2px solid #4285f4;
+      }
+      .cell-input {
+        width: 100%;
+        height: 100%;
+        border: none;
+        padding: 4px;
+        box-sizing: border-box;
+      }
+      .log-panel {
+        margin-top: 20px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #f9f9f9;
+        height: 150px;
+        overflow-y: auto;
+      }
+      .log-header {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px;
+        background-color: #f1f1f1;
+        border-bottom: 1px solid #ddd;
+      }
+      .log-content {
+        padding: 8px;
+        font-family: monospace;
+        font-size: 13px;
+      }
+      .log-entry {
+        margin-bottom: 5px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+      }
+      .custom-menu {
+        background-color: #f1f1f1;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 5px;
+        margin-bottom: 10px;
+      }
+      .custom-menu-item {
+        padding: 5px 10px;
+        cursor: pointer;
+        border-radius: 3px;
+      }
+      .custom-menu-item:hover {
+        background-color: #e1e1e1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="editor-panel">
+        <div class="panel-header">
+          <h1>GASコードエディタ</h1>
+          <div>
+            <button onclick="runCode()">実行</button>
+            <button onclick="saveCode()">保存</button>
+            <button onclick="showDebugInfo()" style="background-color: #ea4335;">デバッグ</button>
+          </div>
+        </div>
+        <div class="code-editor">
+          <div class="editor-tabs">
+            <div class="editor-tab active" onclick="switchTab('code')">Code.gs</div>
+            <div class="editor-tab" onclick="switchTab('html')">Index.html</div>
+          </div>
+          <textarea id="codeEditor" spellcheck="false"></textarea>
+        </div>
+        <div class="log-panel">
+          <div class="log-header">
+            <span>ログ出力</span>
+            <button onclick="clearLog()" style="padding: 2px 8px; font-size: 12px">クリア</button>
+          </div>
+          <div class="log-content" id="logContent"></div>
+        </div>
+      </div>
+      <div class="spreadsheet-panel">
+        <div class="panel-header">
+          <h1>スプレッドシートシミュレーター</h1>
+          <div class="toolbar">
+            <button class="menu-button" onclick="toggleCustomMenu()">日付ツール</button>
+          </div>
+        </div>
+        <div id="customMenu" class="custom-menu" style="display: none">
+          <div class="custom-menu-item" onclick="runCustomFunction('writeDateToActiveCell')">今日の日付を挿入</div>
+        </div>
+        <div class="spreadsheet" id="spreadsheet">
+          <table id="sheet">
+            <thead>
+              <tr>
+                <th></th>
+                <th>A</th>
+                <th>B</th>
+                <th>C</th>
+                <th>D</th>
+                <th>E</th>
+                <th>F</th>
+                <th>G</th>
+                <th>H</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- スプレッドシートの行は動的に生成されます -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 初期コード
+      const initialCode = `/**
+ * 今日の日付を取得して表示する関数
+ */
+function getTodaysDate() {
+  // 現在の日付を取得
+  var today = new Date();
+
+  // 日付をフォーマット（例：2023年4月1日）
+  var formattedDate = Utilities.formatDate(
+    today,
+    "Asia/Tokyo",
+    "yyyy年MM月dd日"
+  );
+
+  // ログに表示
+  Logger.log("今日の日付: " + formattedDate);
+
+  return formattedDate;
+}
+
+/**
+ * スプレッドシートのアクティブなセルに今日の日付を書き込む関数
+ */
+function writeDateToActiveCell() {
+  // 今日の日付を取得
+  var today = getTodaysDate();
+
+  // アクティブなスプレッドシートを取得
+  var sheet = SpreadsheetApp.getActiveSheet();
+
+  // アクティブなセルに日付を書き込む
+  var activeCell = sheet.getActiveCell();
+  activeCell.setValue(today);
+}
+
+/**
+ * メニューから実行するための関数
+ */
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu("日付ツール")
+    .addItem("今日の日付を挿入", "writeDateToActiveCell")
+    .addToUi();
+}`;
+
+      const initialHtml = `<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <title>日付ツール</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      h1 {
+        color: #4285f4;
+        text-align: center;
+      }
+      .date-display {
+        font-size: 24px;
+        text-align: center;
+        margin: 20px 0;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+      }
+      button {
+        display: block;
+        margin: 10px auto;
+        padding: 10px 20px;
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #3367d6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>日付ツール</h1>
+      <div class="date-display" id="dateDisplay">ここに日付が表示されます</div>
+      <button onclick="getDate()">今日の日付を取得</button>
+      <button onclick="insertDateToSheet()">スプレッドシートに挿入</button>
+    </div>
+
+    <script>
+      // 今日の日付を取得して表示
+      function getDate() {
+        google.script.run.withSuccessHandler(updateDisplay).getTodaysDate();
+      }
+
+      // スプレッドシートに日付を挿入
+      function insertDateToSheet() {
+        google.script.run.withSuccessHandler(onSuccess).writeDateToActiveCell();
+      }
+
+      // 日付表示を更新
+      function updateDisplay(date) {
+        document.getElementById("dateDisplay").textContent = date;
+      }
+
+      // 成功メッセージ
+      function onSuccess() {
+        alert("スプレッドシートに日付を挿入しました！");
+      }
+    </script>
+  </body>
+</html>`;
+
+      // 現在のタブ
+      let currentTab = 'code';
+      let codeContent = initialCode;
+      let htmlContent = initialHtml;
+      let activeCell = null;
+
+      // エディタの初期化
+      const codeEditor = document.getElementById('codeEditor');
+      codeEditor.value = codeContent;
+
+      // スプレッドシートの初期化
+      function initSpreadsheet() {
+        const tbody = document.querySelector('#sheet tbody');
+        tbody.innerHTML = '';
+        
+        // 10行のスプレッドシートを作成
+        for (let i = 1; i <= 10; i++) {
+          const row = document.createElement('tr');
+          
+          // 行番号
+          const rowHeader = document.createElement('th');
+          rowHeader.textContent = i;
+          row.appendChild(rowHeader);
+          
+          // セル
+          for (let j = 0; j < 8; j++) {
+            const cell = document.createElement('td');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'cell-input';
+            input.dataset.row = i;
+            input.dataset.col = String.fromCharCode(65 + j); // A, B, C, ...
+            input.addEventListener('focus', function() {
+              if (activeCell) {
+                activeCell.parentElement.classList.remove('active');
+              }
+              activeCell = this;
+              this.parentElement.classList.add('active');
+            });
+            cell.appendChild(input);
+            row.appendChild(cell);
+          }
+          
+          tbody.appendChild(row);
+        }
+      }
+
+      // タブの切り替え
+      function switchTab(tab) {
+        // 現在のコンテンツを保存
+        if (currentTab === 'code') {
+          codeContent = codeEditor.value;
+        } else {
+          htmlContent = codeEditor.value;
+        }
+        
+        // タブの切り替え
+        currentTab = tab;
+        document.querySelectorAll('.editor-tab').forEach(el => {
+          el.classList.remove('active');
+        });
+        document.querySelector(`.editor-tab:nth-child(${tab === 'code' ? 1 : 2})`).classList.add('active');
+        
+        // エディタの内容を更新
+        codeEditor.value = tab === 'code' ? codeContent : htmlContent;
+      }
+
+      // ログのクリア
+      function clearLog() {
+        document.getElementById('logContent').innerHTML = '';
+      }
+
+      // ログの追加
+      function addLog(message, type = 'info') {
+        const logContent = document.getElementById('logContent');
+        const logEntry = document.createElement('div');
+        logEntry.className = 'log-entry';
+        logEntry.innerHTML = `<span class="log-${type}">${message}</span>`;
+        logContent.appendChild(logEntry);
+        logContent.scrollTop = logContent.scrollHeight;
+      }
+
+      // カスタムメニューの表示/非表示
+      function toggleCustomMenu() {
+        const menu = document.getElementById('customMenu');
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+      }
+
+      // コードの保存
+      function saveCode() {
+        if (currentTab === 'code') {
+          codeContent = codeEditor.value;
+          addLog('Code.gsを保存しました');
+        } else {
+          htmlContent = codeEditor.value;
+          addLog('Index.htmlを保存しました');
+        }
+      }
+
+      // GAS APIのモック
+      const GASMock = {
+        // Utilitiesのモック
+        Utilities: {
+          formatDate: function(date, timeZone, format) {
+            // 簡易的な日付フォーマット
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            
+            // フォーマットパターンの処理
+            let result = format;
+            result = result.replace('yyyy', year);
+            result = result.replace('MM', month.toString().padStart(2, '0'));
+            result = result.replace('dd', day.toString().padStart(2, '0'));
+            
+            // 日本語フォーマット
+            if (format === 'yyyy年MM月dd日') {
+              return `${year}年${month.toString().padStart(2, '0')}月${day.toString().padStart(2, '0')}日`;
+            }
+            
+            return result;
+          }
+        },
+        
+        // Loggerのモック
+        Logger: {
+          log: function(message) {
+            addLog(message);
+            console.log(message);
+          },
+          clear: function() {
+            clearLog();
+          }
+        },
+        
+        // SpreadsheetAppのモック
+        SpreadsheetApp: {
+          // スプレッドシートデータの保存
+          _data: {},
+          
+          getActiveSheet: function() {
+            return {
+              getRange: function(row, column, numRows, numColumns) {
+                return {
+                  setValue: function(value) {
+                    const cellInput = document.querySelector(`input[data-row="${row}"][data-col="${String.fromCharCode(64 + column)}"]`);
+                    if (cellInput) {
+                      cellInput.value = value;
+                    }
+                  },
+                  setValues: function(values) {
+                    for (let i = 0; i < values.length; i++) {
+                      for (let j = 0; j < values[i].length; j++) {
+                        const cellInput = document.querySelector(`input[data-row="${row + i}"][data-col="${String.fromCharCode(64 + column + j)}"]`);
+                        if (cellInput) {
+                          cellInput.value = values[i][j];
+                        }
+                      }
+                    }
+                  },
+                  getValues: function() {
+                    const result = [];
+                    for (let i = 0; i < numRows; i++) {
+                      const rowData = [];
+                      for (let j = 0; j < numColumns; j++) {
+                        const cellInput = document.querySelector(`input[data-row="${row + i}"][data-col="${String.fromCharCode(64 + column + j)}"]`);
+                        rowData.push(cellInput ? cellInput.value : '');
+                      }
+                      result.push(rowData);
+                    }
+                    return result;
+                  }
+                };
+              },
+              getActiveCell: function() {
+                if (!activeCell) {
+                  addLog('アクティブなセルがありません', 'error');
+                  return {
+                    setValue: function() {}
+                  };
+                }
+                
+                return {
+                  setValue: function(value) {
+                    activeCell.value = value;
+                  },
+                  getValue: function() {
+                    return activeCell.value;
+                  },
+                  getRow: function() {
+                    return parseInt(activeCell.dataset.row);
+                  },
+                  getColumn: function() {
+                    return activeCell.dataset.col.charCodeAt(0) - 64; // A=1, B=2, ...
+                  }
+                };
+              },
+              getDataRange: function() {
+                return {
+                  getValues: function() {
+                    const values = [];
+                    for (let i = 1; i <= 10; i++) {
+                      const rowData = [];
+                      for (let j = 1; j <= 8; j++) {
+                        const cellInput = document.querySelector(`input[data-row="${i}"][data-col="${String.fromCharCode(64 + j)}"]`);
+                        rowData.push(cellInput ? cellInput.value : '');
+                      }
+                      values.push(rowData);
+                    }
+                    return values;
+                  }
+                };
+              }
+            };
+          },
+          getUi: function() {
+            return {
+              createMenu: function(name) {
+                return {
+                  addItem: function(label, functionName) {
+                    // メニュー項目を追加
+                    const customMenu = document.getElementById('customMenu');
+                    const menuItem = document.createElement('div');
+                    menuItem.className = 'custom-menu-item';
+                    menuItem.textContent = label;
+                    menuItem.onclick = function() {
+                      runCustomFunction(functionName);
+                    };
+                    customMenu.appendChild(menuItem);
+                    return this;
+                  },
+                  addToUi: function() {
+                    // メニューはすでに表示されているので何もしない
+                    addLog(`メニュー「${name}」を追加しました`);
+                  }
+                };
+              },
+              alert: function(message) {
+                alert(message);
+                addLog(`アラート: ${message}`);
+              }
+            };
+          }
+        },
+        
+        // HtmlServiceのモック
+        HtmlService: {
+          createHtmlOutput: function(html) {
+            return {
+              setTitle: function(title) {
+                return this;
+              },
+              setWidth: function(width) {
+                return this;
+              },
+              setHeight: function(height) {
+                return this;
+              }
+            };
+          },
+          createTemplateFromFile: function(filename) {
+            return {
+              evaluate: function() {
+                return {
+                  setTitle: function(title) {
+                    return this;
+                  },
+                  setWidth: function(width) {
+                    return this;
+                  },
+                  setHeight: function(height) {
+                    return this;
+                  }
+                };
+              }
+            };
+          }
+        },
+        
+        // PropertiesServiceのモック
+        PropertiesService: {
+          _properties: {},
+          getScriptProperties: function() {
+            return {
+              getProperty: function(key) {
+                return GASMock.PropertiesService._properties[key] || null;
+              },
+              setProperty: function(key, value) {
+                GASMock.PropertiesService._properties[key] = value;
+                addLog(`プロパティを設定: ${key}=${value}`);
+              },
+              deleteProperty: function(key) {
+                delete GASMock.PropertiesService._properties[key];
+              },
+              getProperties: function() {
+                return {...GASMock.PropertiesService._properties};
+              }
+            };
+          },
+          getUserProperties: function() {
+            return this.getScriptProperties();
+          },
+          getDocumentProperties: function() {
+            return this.getScriptProperties();
+          }
+        }
+      };
+
+      // コードの実行
+      function runCode() {
+        try {
+          // 現在のコードを保存
+          saveCode();
+          
+          // コードの実行環境を準備
+          const code = codeContent;
+          
+          // グローバル変数の設定
+          window.Utilities = GASMock.Utilities;
+          window.Logger = GASMock.Logger;
+          window.SpreadsheetApp = GASMock.SpreadsheetApp;
+          window.HtmlService = GASMock.HtmlService;
+          window.PropertiesService = GASMock.PropertiesService;
+          
+          // デバッグ用の変数
+          window._gasDebug = {
+            lastError: null,
+            lastResult: null,
+            functionCalls: []
+          };
+          
+          // コードを評価
+          eval(code);
+          
+          // onOpen関数があれば実行
+          if (typeof window.onOpen === 'function') {
+            window.onOpen();
+          }
+          
+          addLog('コードを実行しました');
+        } catch (error) {
+          window._gasDebug.lastError = error;
+          addLog(`エラー: ${error.message}`, 'error');
+          console.error(error);
+        }
+      }
+
+      // カスタム関数の実行
+      function runCustomFunction(functionName) {
+        try {
+          if (typeof window[functionName] === 'function') {
+            // 関数実行前のログ
+            addLog(`関数 ${functionName} を実行します...`);
+            
+            // 関数の実行と結果の取得
+            const result = window[functionName]();
+            window._gasDebug.lastResult = result;
+            window._gasDebug.functionCalls.push({
+              name: functionName,
+              timestamp: new Date(),
+              result: result
+            });
+            
+            // 結果のログ表示
+            if (result !== undefined) {
+              addLog(`${functionName} の実行結果: ${JSON.stringify(result)}`);
+            } else {
+              addLog(`${functionName} を実行しました`);
+            }
+            
+            return result;
+          } else {
+            addLog(`関数 ${functionName} が見つかりません`, 'error');
+          }
+        } catch (error) {
+          window._gasDebug.lastError = error;
+          addLog(`エラー: ${error.message}`, 'error');
+          console.error(error);
+        }
+      }
+      
+      // デバッグ情報の表示
+      function showDebugInfo() {
+        const debugInfo = document.createElement('div');
+        debugInfo.className = 'debug-info';
+        debugInfo.innerHTML = `
+          <h3>デバッグ情報</h3>
+          <p>最後に実行した関数: ${window._gasDebug.functionCalls.length > 0 ? window._gasDebug.functionCalls[window._gasDebug.functionCalls.length - 1].name : 'なし'}</p>
+          <p>関数実行回数: ${window._gasDebug.functionCalls.length}</p>
+          <p>最後のエラー: ${window._gasDebug.lastError ? window._gasDebug.lastError.message : 'なし'}</p>
+        `;
+        
+        // モーダルとして表示
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        modal.style.display = 'flex';
+        modal.style.justifyContent = 'center';
+        modal.style.alignItems = 'center';
+        modal.style.zIndex = '1000';
+        
+        const modalContent = document.createElement('div');
+        modalContent.style.backgroundColor = 'white';
+        modalContent.style.padding = '20px';
+        modalContent.style.borderRadius = '5px';
+        modalContent.style.maxWidth = '80%';
+        modalContent.style.maxHeight = '80%';
+        modalContent.style.overflow = 'auto';
+        
+        const closeButton = document.createElement('button');
+        closeButton.textContent = '閉じる';
+        closeButton.onclick = function() {
+          document.body.removeChild(modal);
+        };
+        
+        modalContent.appendChild(debugInfo);
+        modalContent.appendChild(closeButton);
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+      }
+
+      // HTMLダイアログのシミュレーション
+      function showHtmlDialog() {
+        // 実際のGASではHTMLダイアログを表示するが、ここではシミュレーションのみ
+        addLog('HTMLダイアログを表示しました（シミュレーション）');
+      }
+
+      // 初期化
+      initSpreadsheet();
+      runCode(); // 初期コードを実行
+    </script>
+  </body>
+</html>

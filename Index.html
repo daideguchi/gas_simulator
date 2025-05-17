@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <title>日付ツール</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      h1 {
+        color: #4285f4;
+        text-align: center;
+      }
+      .date-display {
+        font-size: 24px;
+        text-align: center;
+        margin: 20px 0;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+      }
+      button {
+        display: block;
+        margin: 10px auto;
+        padding: 10px 20px;
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #3367d6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>日付ツール</h1>
+      <div class="date-display" id="dateDisplay">ここに日付が表示されます</div>
+      <button onclick="getDate()">今日の日付を取得</button>
+      <button onclick="insertDateToSheet()">スプレッドシートに挿入</button>
+    </div>
+
+    <script>
+      // 今日の日付を取得して表示
+      function getDate() {
+        google.script.run.withSuccessHandler(updateDisplay).getTodaysDate();
+      }
+
+      // スプレッドシートに日付を挿入
+      function insertDateToSheet() {
+        google.script.run.withSuccessHandler(onSuccess).writeDateToActiveCell();
+      }
+
+      // 日付表示を更新
+      function updateDisplay(date) {
+        document.getElementById("dateDisplay").textContent = date;
+      }
+
+      // 成功メッセージ
+      function onSuccess() {
+        alert("スプレッドシートに日付を挿入しました！");
+      }
+    </script>
+  </body>
+</html>
