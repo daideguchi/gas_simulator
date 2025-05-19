@@ -1,0 +1,26 @@
+# Google Apps Script関連
+.clasp.json
+.clasprc.json
+
+# macOS関連
+.DS_Store
+
+# エディタ関連
+.vscode/
+.idea/
+*.swp
+*~
+
+# 一時ファイル
+tmp/
+temp/
+
+# ログファイル
+*.log
+
+# 認証情報や機密情報
+*.key
+*.pem
+*.p12
+credentials.json
+token.json
