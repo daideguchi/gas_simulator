@@ -31,3 +31,9 @@ token.json
 *client_id*.gs
 *client_secret*.gs
 *oauth*.gs
+index.gs
+
+# 機密情報を含む可能性のあるファイル
+*secret*.gs
+*api_key*.gs
+*credential*.gs
