@@ -33,3 +33,27 @@
 - このツールは、YouTube API のクォータ制限内で動作するように設計されていますが、過度に頻繁な使用はクォータ制限に達する可能性があります
 - 詳細な分析データは、チャンネル所有者として OAuth 認証を行った場合のみ取得できます
 - データの取得には時間がかかる場合があります。特に多くの動画を持つチャンネルでは、処理に時間がかかることがあります
+- セキュリティ上の理由から、OAuth 認証情報（Client ID と Client Secret）はスクリプトプロパティに保存してください。直接コード内に記述しないでください
+
+## セキュリティ設定
+
+1. スクリプトエディタで「プロジェクトの設定」を開く
+2. 「スクリプトプロパティ」タブを選択
+3. 以下のプロパティを追加：
+   - `OAUTH_CLIENT_ID`: Google Cloud Console の OAuth Client ID
+   - `OAUTH_CLIENT_SECRET`: Google Cloud Console の OAuth Client Secret
+
+## Git/GitHub での管理
+
+1. **重要**: 認証情報（API キー、OAuth Client ID/Secret）は絶対にコードに直接記述しないでください
+2. `.gitignore`ファイルを作成して機密情報を含むファイルを除外することを検討してください
+3. Git リポジトリに追加する際は以下のコマンドを使用してください：
+   ```
+   git add .
+   git commit -m "コミットメッセージ"
+   git push origin main
+   ```
+4. `appsscript.json`ファイルも Git で追跡するようにしてください：
+   ```
+   git add appsscript.json
+   ```

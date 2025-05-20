@@ -24,3 +24,10 @@ temp/
 *.p12
 credentials.json
 token.json
+
+# OAuth認証情報
+# 以下のパターンは、コード内に直接記述された認証情報を検出するためのものです
+# GitHub Secret Scanningによって検出される可能性のある形式
+*client_id*.gs
+*client_secret*.gs
+*oauth*.gs
